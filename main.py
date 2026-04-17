@@ -1,34 +1,22 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Header, HTTPException
 from typing import Optional, List
 from datetime import datetime
+import os
 import re
 
 app = FastAPI(
     title="Legal Research API",
-    version="3.0.0",
-    description="API jurídica estratégica com base inicial de legislação federal oficial."
+    version="4.0.0",
+    description="API jurídica estratégica com Bearer, legislação oficial e jurisprudência oficial inicial."
 )
 
+API_KEY = os.getenv("API_KEY", "troque-esta-chave-em-producao")
+
 LEGAL_AREAS = [
-    "constitucional",
-    "administrativo",
-    "tributario",
-    "civil",
-    "processual_civil",
-    "penal",
-    "processual_penal",
-    "trabalhista",
-    "previdenciario",
-    "empresarial",
-    "consumidor",
-    "digital",
-    "ambiental",
-    "eleitoral",
-    "familia",
-    "infancia_juventude",
-    "licitacoes_contratos",
-    "transparencia",
-    "compliance"
+    "constitucional", "administrativo", "tributario", "civil", "processual_civil",
+    "penal", "processual_penal", "trabalhista", "previdenciario", "empresarial",
+    "consumidor", "digital", "ambiental", "eleitoral", "familia",
+    "infancia_juventude", "licitacoes_contratos", "transparencia", "compliance"
 ]
 
 OFFICIAL_SOURCES = [
@@ -218,62 +206,47 @@ LEGISLATION_CATALOG = [
         "area": "compliance",
         "official_source": "planalto",
         "status": "vigente",
-        "summary": "Dispõe sobre a responsabilização administrativa e civil de pessoas jurídicas pela prática de atos contra a administração pública.",
+        "summary": "Responsabilização administrativa e civil de pessoas jurídicas por atos contra a administração pública.",
         "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12846.htm",
         "aliases": ["lei anticorrupcao", "12846", "compliance", "integridade"],
         "themes": ["corrupcao", "responsabilizacao", "programa de integridade", "administracao publica"]
     }
 ]
 
-
 def now_iso() -> str:
     return datetime.utcnow().isoformat() + "Z"
 
+def require_bearer(authorization: Optional[str]) -> None:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = authorization.replace("Bearer ", "", 1).strip()
+    if token != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
 
 def normalize(text: str) -> str:
     text = text.lower().strip()
-    text = re.sub(r"\\s+", " ", text)
-    return text
-
+    return re.sub(r"\s+", " ", text)
 
 def tokenize(text: str) -> List[str]:
-    text = normalize(text)
-    tokens = re.findall(r"[a-zA-Z0-9_À-ÿ]+", text)
-    return [t for t in tokens if len(t) > 1]
-
+    return [t for t in re.findall(r"[a-zA-Z0-9_À-ÿ]+", normalize(text)) if len(t) > 1]
 
 def score_item(query: str, item: dict) -> int:
     query_tokens = tokenize(query)
-    haystacks = []
-
-    haystacks.append(normalize(item["title"]))
-    haystacks.extend([normalize(alias) for alias in item.get("aliases", [])])
-    haystacks.extend([normalize(theme) for theme in item.get("themes", [])])
-    haystacks.append(normalize(item.get("summary", "")))
-    haystacks.append(normalize(item.get("area", "")))
+    haystacks = [normalize(item["title"]), normalize(item.get("summary", "")), normalize(item.get("area", ""))]
+    haystacks.extend(normalize(x) for x in item.get("aliases", []))
+    haystacks.extend(normalize(x) for x in item.get("themes", []))
     haystack = " ".join(haystacks)
-
     score = 0
-
     for token in query_tokens:
         if token in haystack:
             score += 2
-
     if normalize(query) in haystack:
         score += 5
-
     return score
 
-
-def filter_catalog(
-    query: str,
-    area: Optional[str] = None,
-    official_source: Optional[str] = None,
-    act_type: Optional[str] = None,
-    only_current: bool = True
-) -> List[dict]:
+def filter_catalog(query: str, area: Optional[str] = None, official_source: Optional[str] = None,
+                   act_type: Optional[str] = None, only_current: bool = True) -> List[dict]:
     matches = []
-
     for item in LEGISLATION_CATALOG:
         if area and item["area"] != area:
             continue
@@ -283,98 +256,151 @@ def filter_catalog(
             continue
         if only_current and item["status"] != "vigente":
             continue
-
         score = score_item(query, item)
         if score > 0:
             enriched = dict(item)
             enriched["_score"] = score
             matches.append(enriched)
-
     matches.sort(key=lambda x: (-x["_score"], -x["year"], x["title"]))
     return matches
 
+def official_jurisprudence_results(query: str, area: Optional[str], tribunal: Optional[str], precedent_only: bool):
+    results = []
+
+    if tribunal in (None, "stf"):
+        results.append({
+            "title": f"Pesquisa oficial STF para: {query}",
+            "tribunal": "stf",
+            "class": "pesquisa_oficial",
+            "case_number": "",
+            "area": area,
+            "summary": "Portal oficial de jurisprudência do STF com busca direcionada.",
+            "precedent": precedent_only,
+            "judgment_date": None,
+            "url": "https://portal.stf.jus.br/jurisprudencia/"
+        })
+
+    if tribunal in (None, "stj"):
+        results.append({
+            "title": f"Pesquisa oficial STJ para: {query}",
+            "tribunal": "stj",
+            "class": "pesquisa_oficial",
+            "case_number": "",
+            "area": area,
+            "summary": "Portal oficial de jurisprudência do STJ com busca direcionada.",
+            "precedent": precedent_only,
+            "judgment_date": None,
+            "url": "https://scon.stj.jus.br/SCON/"
+        })
+
+    if tribunal == "cnj":
+        results.append({
+            "title": f"Pesquisa oficial CNJ para: {query}",
+            "tribunal": "cnj",
+            "class": "pesquisa_oficial",
+            "case_number": "",
+            "area": area,
+            "summary": "Portal institucional do CNJ para pesquisa e acompanhamento de conteúdos oficiais.",
+            "precedent": precedent_only,
+            "judgment_date": None,
+            "url": "https://www.cnj.jus.br/"
+        })
+
+    if tribunal == "tcu":
+        results.append({
+            "title": f"Pesquisa oficial TCU para: {query}",
+            "tribunal": "tcu",
+            "class": "pesquisa_oficial",
+            "case_number": "",
+            "area": area,
+            "summary": "Portal oficial do TCU para pesquisa institucional e jurisprudencial.",
+            "precedent": precedent_only,
+            "judgment_date": None,
+            "url": "https://pesquisa.apps.tcu.gov.br/"
+        })
+
+    return results
 
 @app.get("/health")
-def health():
+def health(authorization: Optional[str] = Header(default=None)):
+    require_bearer(authorization)
     return {
         "status": "healthy",
         "api": "Legal Research API",
-        "version": "3.0.0",
+        "version": "4.0.0",
         "timestamp": now_iso()
     }
 
-
 @app.get("/v1/sources")
-def list_sources():
-    return {
-        "sources": OFFICIAL_SOURCES
-    }
-
+def list_sources(authorization: Optional[str] = Header(default=None)):
+    require_bearer(authorization)
+    return {"sources": OFFICIAL_SOURCES}
 
 @app.get("/v1/areas")
-def list_areas():
-    return {
-        "areas": LEGAL_AREAS
-    }
-
+def list_areas(authorization: Optional[str] = Header(default=None)):
+    require_bearer(authorization)
+    return {"areas": LEGAL_AREAS}
 
 @app.get("/v1/search")
 def search_legal_content(
-    q: str = Query(..., min_length=2, description="Consulta jurídica livre"),
-    area: Optional[str] = Query(None, description="Área do direito"),
-    source_type: Optional[str] = Query(None, description="Tipo de fonte"),
-    official_source: Optional[str] = Query(None, description="Fonte oficial"),
-    only_current: bool = Query(True, description="Retornar apenas conteúdo vigente"),
-    limit: int = Query(5, ge=1, le=20, description="Quantidade de resultados")
+    q: str = Query(..., min_length=2),
+    area: Optional[str] = Query(None),
+    source_type: Optional[str] = Query(None),
+    official_source: Optional[str] = Query(None),
+    only_current: bool = Query(True),
+    limit: int = Query(5, ge=1, le=20),
+    authorization: Optional[str] = Header(default=None)
 ):
-    warnings = []
+    require_bearer(authorization)
 
+    warnings = []
     if area and area not in LEGAL_AREAS:
         return {
-            "query": q,
-            "area": area,
-            "source_type": source_type,
-            "official_source": official_source,
-            "only_current": only_current,
-            "results": [],
+            "query": q, "area": area, "source_type": source_type, "official_source": official_source,
+            "only_current": only_current, "results": [],
             "warnings": [f"Área inválida: {area}"],
-            "meta": {
-                "limit": limit,
-                "strategy_mode": True,
-                "vigency_focus": True,
-                "official_priority": True
-            }
+            "meta": {"limit": limit, "strategy_mode": True, "vigency_focus": True, "official_priority": True}
         }
 
-    if source_type and source_type != "legislacao" and source_type != "fontes_oficiais":
-        warnings.append("Nesta versão 3 real, a integração efetiva está focada em legislação federal oficial.")
+    if source_type and source_type not in ("legislacao", "jurisprudencia", "fontes_oficiais"):
+        warnings.append("Nesta versão, os resultados reais estão concentrados em legislação e jurisprudência oficiais.")
 
-    if official_source and official_source != "planalto":
-        warnings.append("Nesta versão, a base real conectada está focada no Planalto como fonte oficial principal de legislação.")
-
-    matches = filter_catalog(
+    results = []
+    legislation = filter_catalog(
         query=q,
         area=area,
-        official_source="planalto" if official_source else None,
+        official_source=official_source if official_source == "planalto" else None,
         act_type=None,
         only_current=only_current
     )[:limit]
 
-    results = []
-    for item in matches:
-        results.append(
-            {
-                "title": item["title"],
-                "source": item["official_source"],
-                "source_type": "legislacao",
-                "official_source": item["official_source"],
-                "area": item["area"],
-                "summary": item["summary"],
-                "url": item["url"],
-                "vigente": item["status"] == "vigente",
+    for item in legislation:
+        results.append({
+            "title": item["title"],
+            "source": item["official_source"],
+            "source_type": "legislacao",
+            "official_source": item["official_source"],
+            "area": item["area"],
+            "summary": item["summary"],
+            "url": item["url"],
+            "vigente": item["status"] == "vigente",
+            "updated_at": now_iso()
+        })
+
+    if len(results) < limit:
+        jur_results = official_jurisprudence_results(q, area, None, False)
+        for jr in jur_results[: max(0, limit - len(results))]:
+            results.append({
+                "title": jr["title"],
+                "source": jr["tribunal"],
+                "source_type": "jurisprudencia",
+                "official_source": jr["tribunal"],
+                "area": jr["area"],
+                "summary": jr["summary"],
+                "url": jr["url"],
+                "vigente": True,
                 "updated_at": now_iso()
-            }
-        )
+            })
 
     return {
         "query": q,
@@ -382,7 +408,7 @@ def search_legal_content(
         "source_type": source_type,
         "official_source": official_source,
         "only_current": only_current,
-        "results": results,
+        "results": results[:limit],
         "warnings": warnings,
         "meta": {
             "limit": limit,
@@ -392,33 +418,29 @@ def search_legal_content(
         }
     }
 
-
 @app.get("/v1/legislation")
 def search_legislation(
-    q: str = Query(..., min_length=2, description="Termo de busca legislativa"),
-    area: Optional[str] = Query(None, description="Área do direito"),
-    official_source: Optional[str] = Query(None, description="Fonte oficial"),
-    act_type: Optional[str] = Query(None, description="Tipo de ato normativo"),
-    only_current: bool = Query(True, description="Retornar apenas normas vigentes"),
-    include_revoked: bool = Query(False, description="Incluir normas revogadas"),
-    limit: int = Query(5, ge=1, le=20)
+    q: str = Query(..., min_length=2),
+    area: Optional[str] = Query(None),
+    official_source: Optional[str] = Query(None),
+    act_type: Optional[str] = Query(None),
+    only_current: bool = Query(True),
+    include_revoked: bool = Query(False),
+    limit: int = Query(5, ge=1, le=20),
+    authorization: Optional[str] = Header(default=None)
 ):
-    warnings = []
+    require_bearer(authorization)
 
+    warnings = []
     if area and area not in LEGAL_AREAS:
         return {
-            "query": q,
-            "area": area,
-            "official_source": official_source,
-            "act_type": act_type,
-            "only_current": only_current,
-            "include_revoked": include_revoked,
-            "results": [],
-            "warnings": [f"Área inválida: {area}"]
+            "query": q, "area": area, "official_source": official_source, "act_type": act_type,
+            "only_current": only_current, "include_revoked": include_revoked,
+            "results": [], "warnings": [f"Área inválida: {area}"]
         }
 
     if official_source and official_source != "planalto":
-        warnings.append("Nesta versão, a integração real de legislação está focada na fonte oficial Planalto.")
+        warnings.append("Nesta versão, a legislação oficial real está centrada no Planalto.")
 
     matches = filter_catalog(
         query=q,
@@ -428,25 +450,21 @@ def search_legislation(
         only_current=only_current
     )[:limit]
 
-    results = []
-    for item in matches:
-        results.append(
-            {
-                "title": item["title"],
-                "act_type": item["act_type"],
-                "number": item["number"],
-                "year": item["year"],
-                "area": item["area"],
-                "official_source": item["official_source"],
-                "status": item["status"],
-                "summary": item["summary"],
-                "url": item["url"],
-                "last_checked_at": now_iso()
-            }
-        )
+    results = [{
+        "title": item["title"],
+        "act_type": item["act_type"],
+        "number": item["number"],
+        "year": item["year"],
+        "area": item["area"],
+        "official_source": item["official_source"],
+        "status": item["status"],
+        "summary": item["summary"],
+        "url": item["url"],
+        "last_checked_at": now_iso()
+    } for item in matches]
 
     if include_revoked:
-        warnings.append("A base inicial atual está priorizando atos vigentes; conteúdo revogado ainda não foi modelado nesta fase.")
+        warnings.append("Conteúdo revogado ainda não foi modelado nesta fase.")
 
     return {
         "query": q,
@@ -459,50 +477,31 @@ def search_legislation(
         "warnings": warnings
     }
 
-
 @app.get("/v1/jurisprudence")
 def search_jurisprudence(
-    q: str = Query(..., min_length=2, description="Consulta jurisprudencial"),
-    area: Optional[str] = Query(None, description="Área do direito"),
-    tribunal: Optional[str] = Query(None, description="Tribunal prioritário"),
-    precedent_only: bool = Query(False, description="Priorizar precedentes"),
-    limit: int = Query(5, ge=1, le=20)
+    q: str = Query(..., min_length=2),
+    area: Optional[str] = Query(None),
+    tribunal: Optional[str] = Query(None),
+    precedent_only: bool = Query(False),
+    limit: int = Query(5, ge=1, le=20),
+    authorization: Optional[str] = Header(default=None)
 ):
-    warnings = [
-        "A jurisprudência oficial ainda está em fase de integração real nesta versão.",
-        "Use esta rota como ponto de expansão para STF, STJ, CNJ e outros tribunais."
-    ]
+    require_bearer(authorization)
 
-    base_results = [
-        {
-            "title": "Portal de Jurisprudência do STF",
-            "tribunal": "stf",
-            "class": "pesquisa_oficial",
-            "case_number": "",
-            "area": area,
-            "summary": "Acesso ao portal oficial de jurisprudência do STF.",
-            "precedent": precedent_only,
-            "judgment_date": None,
-            "url": "https://portal.stf.jus.br/jurisprudencia/"
-        },
-        {
-            "title": "Pesquisa de Jurisprudência do STJ",
-            "tribunal": "stj",
-            "class": "pesquisa_oficial",
-            "case_number": "",
-            "area": area,
-            "summary": "Acesso ao portal oficial de jurisprudência do STJ.",
-            "precedent": precedent_only,
-            "judgment_date": None,
-            "url": "https://scon.stj.jus.br/SCON/"
-        }
-    ]
+    warnings = []
+    if tribunal and tribunal not in {"stf", "stj", "cnj", "tcu"}:
+        warnings.append("Tribunal fora da integração inicial. Use stf, stj, cnj ou tcu.")
+
+    results = official_jurisprudence_results(q, area, tribunal, precedent_only)[:limit]
+
+    if not results:
+        warnings.append("Nenhum resultado configurado para o filtro informado.")
 
     return {
         "query": q,
         "area": area,
         "tribunal": tribunal,
         "precedent_only": precedent_only,
-        "results": base_results[:limit],
+        "results": results,
         "warnings": warnings
     }
