@@ -10,7 +10,7 @@ app = FastAPI(
     description="API jurídica estratégica com Bearer, legislação oficial e jurisprudência oficial inicial."
 )
 
-API_KEY = os.getenv("API_KEY", "troque-esta-chave-em-producao")
+API_KEY = os.getenv("API_KEY", "")
 
 LEGAL_AREAS = [
     "constitucional", "administrativo", "tributario", "civil", "processual_civil",
@@ -220,7 +220,7 @@ def require_bearer(authorization: Optional[str]) -> None:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.replace("Bearer ", "", 1).strip()
-    if token != API_KEY:
+    if not API_KEY or not __import__("hmac").compare_digest(token, API_KEY):
         raise HTTPException(status_code=403, detail="Invalid API key")
 
 def normalize(text: str) -> str:
@@ -505,3 +505,8 @@ def search_jurisprudence(
         "results": results,
         "warnings": warnings
     }
+
+
+# MCP uses OAuth independently; legacy GPT Bearer routes remain unchanged.
+from mcp_integration import install_mcp
+install_mcp(app)
