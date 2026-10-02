@@ -1,0 +1,164 @@
+{
+  "tested_at": "2026-10-02T18:30:18.132292Z",
+  "kind": "real_public_source_requests",
+  "cases": [
+    {
+      "operation": "searchLegislation",
+      "query": "Lei 13.019/2014",
+      "results": [
+        {
+          "title": "LEI Nº 13.019, DE 31 DE JULHO DE 2014",
+          "number": "LEI 13019/2014",
+          "status": "sem_revogacao_expressa_na_fonte",
+          "url": "https://www2.camara.leg.br/legin/fed/lei/2014/lei-13019-31-julho-2014-779123-normaatualizada-pl.html",
+          "retrieval_status": "document_retrieved",
+          "text_characters": 93003,
+          "content_sha256": "10d75f8be0ebb087a6f8ef8c8184bbc5e53f33207e235f0066c29fff04ae5668",
+          "retrieved_at": "2026-10-02T18:30:32.734019Z"
+        }
+      ],
+      "warnings": [
+        "LexML: Fonte exige verificação de segurança; acesso automatizado indisponível",
+        "only_current exige evidência documental de ausência de revogação expressa; não certifica vigência integral, eficácia ou validade de cada dispositivo."
+      ]
+    },
+    {
+      "operation": "searchLegislation",
+      "query": "13.019",
+      "results": [
+        {
+          "title": "LEI Nº 13.019, DE 31 DE JULHO DE 2014",
+          "number": "LEI 13019/2014",
+          "status": "sem_revogacao_expressa_na_fonte",
+          "url": "https://www2.camara.leg.br/legin/fed/lei/2014/lei-13019-31-julho-2014-779123-normaatualizada-pl.html",
+          "retrieval_status": "document_retrieved",
+          "text_characters": 93003,
+          "content_sha256": "10d75f8be0ebb087a6f8ef8c8184bbc5e53f33207e235f0066c29fff04ae5668",
+          "retrieved_at": "2026-10-02T18:30:32.734019Z"
+        }
+      ],
+      "warnings": [
+        "LexML: Falha de rede, tempo ou formato na fonte oficial",
+        "only_current exige evidência documental de ausência de revogação expressa; não certifica vigência integral, eficácia ou validade de cada dispositivo."
+      ]
+    },
+    {
+      "operation": "searchLegislation",
+      "query": "13019",
+      "results": [
+        {
+          "title": "LEI Nº 13.019, DE 31 DE JULHO DE 2014",
+          "number": "LEI 13019/2014",
+          "status": "sem_revogacao_expressa_na_fonte",
+          "url": "https://www2.camara.leg.br/legin/fed/lei/2014/lei-13019-31-julho-2014-779123-normaatualizada-pl.html",
+          "retrieval_status": "document_retrieved",
+          "text_characters": 93003,
+          "content_sha256": "10d75f8be0ebb087a6f8ef8c8184bbc5e53f33207e235f0066c29fff04ae5668",
+          "retrieved_at": "2026-10-02T18:30:32.734019Z"
+        }
+      ],
+      "warnings": [
+        "LexML: Fonte exige verificação de segurança; acesso automatizado indisponível",
+        "only_current exige evidência documental de ausência de revogação expressa; não certifica vigência integral, eficácia ou validade de cada dispositivo."
+      ]
+    },
+    {
+      "operation": "searchLegislation",
+      "query": "Lei 14.133/2021",
+      "results": [
+        {
+          "title": "LEI Nº 14.133, DE 1º DE ABRIL DE 2021",
+          "number": "LEI 14133/2021",
+          "status": "sem_revogacao_expressa_na_fonte",
+          "url": "https://www2.camara.leg.br/legin/fed/lei/2021/lei-14133-1-abril-2021-791222-normaatualizada-pl.pdf",
+          "retrieval_status": "document_retrieved",
+          "text_characters": 267644,
+          "content_sha256": "55643452fd720ee726267f62ad2ee59bff0120c5ec9495b9ee7babc74c5ea026",
+          "retrieved_at": "2026-10-02T18:30:58.942810Z"
+        }
+      ],
+      "warnings": [
+        "LexML: Fonte exige verificação de segurança; acesso automatizado indisponível",
+        "only_current exige evidência documental de ausência de revogação expressa; não certifica vigência integral, eficácia ou validade de cada dispositivo."
+      ]
+    },
+    {
+      "operation": "searchLegislation",
+      "query": "Lei 15.210/2025",
+      "results": [
+        {
+          "title": "LEI Nº 15.210, DE 16 DE SETEMBRO DE 2025",
+          "number": "LEI 15210/2025",
+          "status": "sem_revogacao_expressa_na_fonte",
+          "url": "https://www2.camara.leg.br/legin/fed/lei/2025/lei-15210-16-setembro-2025-797983-publicacaooriginal-176473-pl.html",
+          "retrieval_status": "document_retrieved",
+          "text_characters": 2061,
+          "content_sha256": "f1839a4748489eb4261902a9d5c5d0390d4b11a1057d086dd71fa5a2861592b9",
+          "retrieved_at": "2026-10-02T18:31:12.491532Z"
+        }
+      ],
+      "warnings": [
+        "LexML: Falha de rede, tempo ou formato na fonte oficial",
+        "only_current exige evidência documental de ausência de revogação expressa; não certifica vigência integral, eficácia ou validade de cada dispositivo."
+      ]
+    },
+    {
+      "operation": "searchLegislation",
+      "query": "zqxvnormainexistente987654321",
+      "results": [],
+      "warnings": [
+        "LexML: Fonte exige verificação de segurança; acesso automatizado indisponível",
+        "only_current exige evidência documental de ausência de revogação expressa; não certifica vigência integral, eficácia ou validade de cada dispositivo.",
+        "Nenhum documento elegível foi recuperado; isso não prova inexistência de norma."
+      ]
+    },
+    {
+      "operation": "searchJurisprudence",
+      "query": "imunidade tributária entidades beneficentes",
+      "tribunal": "stj",
+      "precedent_only": false,
+      "results": [],
+      "warnings": [
+        "Não foi possível atualizar o índice oficial do STJ; eventual cache é explicitamente identificado.",
+        "Nenhum acórdão correspondente na janela indexada; isso não prova inexistência de jurisprudência.",
+        "Resultados são espelhos oficiais com ementa e decisão; não constituem recuperação do inteiro teor. A URL aponta ao lote oficial, com record_id para localização inequívoca."
+      ],
+      "retrieval_status": "no_results_in_coverage"
+    },
+    {
+      "operation": "searchJurisprudence",
+      "query": "imunidade tributária entidades beneficentes",
+      "tribunal": "stf",
+      "precedent_only": false,
+      "results": [],
+      "warnings": [
+        "Acesso automatizado ao portal retornou HTTP 403 na validação. Conector documental pendente."
+      ],
+      "retrieval_status": "source_unavailable"
+    },
+    {
+      "operation": "searchJurisprudence",
+      "query": "tributário",
+      "tribunal": "stj",
+      "precedent_only": true,
+      "results": [],
+      "warnings": [
+        "Não foi possível atualizar o índice oficial do STJ; eventual cache é explicitamente identificado.",
+        "Nenhum acórdão correspondente na janela indexada; isso não prova inexistência de jurisprudência.",
+        "Resultados são espelhos oficiais com ementa e decisão; não constituem recuperação do inteiro teor. A URL aponta ao lote oficial, com record_id para localização inequívoca.",
+        "Precedente selecionado apenas quando o próprio registro contém tema e tese jurídica; classificação não equivale a verificação de superação posterior."
+      ],
+      "retrieval_status": "no_results_in_coverage"
+    }
+  ],
+  "stj_index": {
+    "status": "unavailable",
+    "resource_count": 0,
+    "records_per_resource_total": 0,
+    "resources": [],
+    "warnings": [
+      "Não foi possível atualizar o índice oficial do STJ; eventual cache é explicitamente identificado."
+    ],
+    "complete": false
+  }
+}
