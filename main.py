@@ -10,7 +10,7 @@ import stj_index
 from catalog import LEGAL_AREAS
 from official_http import now
 
-VERSION='4.1.0'
+VERSION='4.1.1'
 API_KEY=os.getenv('API_KEY','')
 SOURCES=[
  {'id':'camara','name':'Câmara dos Deputados','type':'fontes_oficiais','official':True,'capability':'federal_legislation_live'},

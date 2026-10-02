@@ -1,15 +1,27 @@
 """Live official discovery and document retrieval with evidence-bearing metadata."""
 import asyncio
 import re
-from io import BytesIO
-from pypdf import PdfReader
-from pypdf.errors import PyPdfError
+import threading
+import pypdfium2 as pdfium
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from defusedxml import ElementTree
 from catalog import LEGISLATION_CATALOG
 from official_http import fetch, SourceError, now, validate_url
 from search_core import identity, Identity, same_identity, normalize, score, tokens
+
+PDF_LOCK=threading.Lock()
+
+def extract_pdf(raw):
+    # PDFium is not thread-safe: serialize native calls across all requests.
+    with PDF_LOCK, pdfium.PdfDocument(raw) as document:
+        if len(document)>300:raise SourceError('PDF excede limite de páginas')
+        parts=[]
+        for page in document:
+            textpage=page.get_textpage()
+            try:parts.append(textpage.get_text_bounded())
+            finally:textpage.close();page.close()
+        return ' '.join(parts)
 
 CAMARA='https://www.camara.leg.br/legislacao/busca'
 LEXML='https://www.lexml.gov.br/busca/SRU'
@@ -109,11 +121,7 @@ async def camara_document(url,q):
         try:
             body=await fetch(target,max_bytes=8_000_000)
             if body['body'].startswith(b'%PDF'):
-                def pdf_text():
-                    reader=PdfReader(BytesIO(body['body']))
-                    if len(reader.pages)>300:raise SourceError('PDF excede limite de páginas')
-                    return ' '.join(page.extract_text() or '' for page in reader.pages)
-                full=await asyncio.wait_for(asyncio.to_thread(pdf_text),timeout=8)
+                full=await asyncio.wait_for(asyncio.to_thread(extract_pdf,body['body']),timeout=12)
             else:
                 _,full=clean_html(body['body'])
             header=normalize(full[:4000])
@@ -121,11 +129,13 @@ async def camara_document(url,q):
             if len(full)<200 or not re.search(number_pattern,header):
                 raise SourceError('Texto recuperado não confirmou o número da norma')
             return body,full,None
-        except (SourceError,ValueError,TimeoutError,PyPdfError):
-            return None,None,'Texto oficial indisponível ou identidade não confirmada'
+        except SourceError as exc:
+            return None,None,str(exc)
+        except (ValueError,TimeoutError,pdfium.PdfiumError):
+            return None,None,'Falha ou limite de tempo na extração do texto oficial'
     outcomes=await asyncio.gather(*(retrieve_body(u) for u in body_urls))
     success=next(((b,t) for b,t,e in outcomes if b),None)
-    if not success:raise SourceError('Texto oficial indisponível em HTML/PDF ou identidade não confirmada')
+    if not success:raise SourceError('; '.join(dict.fromkeys(e for b,t,e in outcomes if e)))
     body,full=success
     return {'title':title,'number':f"{title.split(' Nº')[0] if ' Nº' in title else 'Norma'} {ident.number}/{ident.year}",
         'act_type':ident.kind,'year':ident.year,'jurisdiction':'federal','area':None,

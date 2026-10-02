@@ -126,7 +126,7 @@ def test_official_pdf_fallback(monkeypatch):
         if url==pdf:return fake_response('%PDF-synthetic-fixture',url)
         raise SourceError('Não configurado')
     monkeypatch.setattr(legislation,'fetch',fetch)
-    monkeypatch.setattr(legislation,'PdfReader',lambda data:SimpleNamespace(pages=[SimpleNamespace(extract_text=lambda:'LEI Nº 13.019, DE 31 DE JULHO DE 2014. '+('Texto oficial. '*30))]))
+    monkeypatch.setattr(legislation,'extract_pdf',lambda data:'LEI Nº 13.019, DE 31 DE JULHO DE 2014. '+('Texto oficial. '*30))
     result=asyncio.run(legislation.camara_document(META,'13019'))
     assert result['url']==pdf and result['text_characters']>200
 
@@ -160,3 +160,17 @@ def test_official_http_rejects_redirect_gateway_and_oversize(monkeypatch,status,
     monkeypatch.setattr(official_http,'CACHE',{})
     with pytest.raises(SourceError):
         asyncio.run(official_http.fetch('https://www.camara.leg.br/test',max_bytes=limit))
+
+def test_fts_migration_preserves_source_records():
+    import sqlite3
+    doc=stj_index.record_to_doc(RECORD,RESOURCE,'2026-10-01')
+    with sqlite3.connect(stj_index.DB) as c:
+        c.execute('CREATE TABLE docs (id TEXT PRIMARY KEY, resource TEXT, payload TEXT)')
+        c.execute('CREATE VIRTUAL TABLE search USING fts5(id UNINDEXED,text)')
+        c.execute('INSERT INTO docs(rowid,id,resource,payload) VALUES(100,?,?,?)',(doc['record_id'],RESOURCE['url'],json.dumps(doc)))
+        c.execute('INSERT INTO search(rowid,id,text) VALUES(7,?,?)',(doc['record_id'],doc['ementa']))
+    result=asyncio.run(stj_index.search('imunidade',tribunal='stj'))
+    assert result['results'][0]['record_id']==doc['record_id']
+    with stj_index.connect() as c:
+        assert c.execute('PRAGMA user_version').fetchone()[0]==2
+        assert c.execute('SELECT rowid FROM search').fetchone()[0]==100

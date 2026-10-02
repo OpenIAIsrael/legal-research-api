@@ -10,6 +10,8 @@ from pathlib import Path
 import re
 import sqlite3
 import time
+import threading
+from contextlib import contextmanager
 from urllib.parse import urlencode
 from official_http import fetch, SourceError, now
 from search_core import normalize,tokens
@@ -17,17 +19,38 @@ from search_core import normalize,tokens
 CKAN='https://dadosabertos.web.stj.jus.br/api/3/action/package_search'
 DB=Path(os.getenv('LEGAL_INDEX_PATH','/tmp/legal-research-index.sqlite3'))
 LOCK=asyncio.Lock()
+WRITE_LOCK=threading.RLock()
+READY_PATHS=set()
 LAST_REFRESH=0.0
 STATE={'status':'not_loaded','resources':[],'warnings':[],'complete':False}
 
+@contextmanager
 def connect():
     DB.parent.mkdir(parents=True,exist_ok=True)
-    c=sqlite3.connect(DB,timeout=10)
-    c.execute('PRAGMA journal_mode=WAL')
-    c.execute('CREATE TABLE IF NOT EXISTS docs (id TEXT PRIMARY KEY, resource TEXT, payload TEXT)')
-    c.execute("CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(id UNINDEXED, text, tokenize='unicode61 remove_diacritics 2')")
-    c.execute('CREATE TABLE IF NOT EXISTS resources (url TEXT PRIMARY KEY, modified TEXT, fetched TEXT, count INTEGER)')
-    c.commit();return c
+    c=sqlite3.connect(DB,timeout=30)
+    try:
+        with WRITE_LOCK:
+            if str(DB) not in READY_PATHS:
+                c.execute('PRAGMA journal_mode=WAL')
+                c.execute('CREATE TABLE IF NOT EXISTS docs (id TEXT PRIMARY KEY, resource TEXT, payload TEXT)')
+                c.execute('CREATE TABLE IF NOT EXISTS resources (url TEXT PRIMARY KEY, modified TEXT, fetched TEXT, count INTEGER)')
+                version=c.execute('PRAGMA user_version').fetchone()[0]
+                if version<2:
+                    # Rebuild only the derived FTS table, preserving all source records.
+                    c.execute('DROP TABLE IF EXISTS search')
+                    c.execute("CREATE VIRTUAL TABLE search USING fts5(id UNINDEXED, text, tokenize='unicode61 remove_diacritics 2')")
+                    for rowid,rid,payload in c.execute('SELECT rowid,id,payload FROM docs').fetchall():
+                        doc=json.loads(payload)
+                        text=' '.join(str(doc.get(k) or '') for k in ('title','ementa','decision','notes','precedent_evidence'))
+                        c.execute('INSERT INTO search(rowid,id,text) VALUES(?,?,?)',(rowid,rid,text))
+                    c.execute('PRAGMA user_version=2')
+                c.commit();READY_PATHS.add(str(DB))
+        yield c
+        c.commit()
+    except BaseException:
+        c.rollback();raise
+    finally:
+        c.close()
 
 def record_to_doc(record,resource,fetched):
     rid=record.get('id');case=record.get('numeroProcesso');ementa=record.get('ementa')
@@ -54,22 +77,24 @@ def record_to_doc(record,resource,fetched):
 
 def store_records(records,resource,fetched):
     count=0
-    with connect() as c:
-        # Refreshing a resource atomically replaces its records, preserving other sources.
-        ids=[r[0] for r in c.execute('SELECT id FROM docs WHERE resource=?',(resource['url'],))]
-        for rid in ids:c.execute('DELETE FROM search WHERE id=?',(rid,))
+    with WRITE_LOCK, connect() as c:
+        # Delete by indexed integer rowid, not an FTS full-table scan per document.
+        for rowid, in c.execute('SELECT rowid FROM docs WHERE resource=?',(resource['url'],)).fetchall():
+            c.execute('DELETE FROM search WHERE rowid=?',(rowid,))
         c.execute('DELETE FROM docs WHERE resource=?',(resource['url'],))
         for record in records:
             doc=record_to_doc(record,resource,fetched)
             if not doc:continue
             rid=doc['record_id']
-            existing=c.execute('SELECT payload FROM docs WHERE id=?',(rid,)).fetchone()
-            if existing and json.loads(existing[0]).get('resource_name','')>resource.get('name',''):
-                continue  # A newer official extraction wins, regardless of download order.
-            c.execute('DELETE FROM search WHERE id=?',(rid,))
-            c.execute('INSERT OR REPLACE INTO docs VALUES(?,?,?)',(rid,resource['url'],json.dumps(doc,ensure_ascii=False)))
+            existing=c.execute('SELECT rowid,payload FROM docs WHERE id=?',(rid,)).fetchone()
+            if existing and json.loads(existing[1]).get('resource_name','')>resource.get('name',''):
+                continue
+            if existing:c.execute('DELETE FROM search WHERE rowid=?',(existing[0],))
+            c.execute('INSERT INTO docs(id,resource,payload) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET resource=excluded.resource,payload=excluded.payload',
+                      (rid,resource['url'],json.dumps(doc,ensure_ascii=False)))
+            rowid=c.execute('SELECT rowid FROM docs WHERE id=?',(rid,)).fetchone()[0]
             searchable=' '.join(str(record.get(k) or '') for k in ('siglaClasse','numeroProcesso','ementa','notas','teseJuridica','termosAuxiliares','decisao'))
-            c.execute('INSERT INTO search(id,text) VALUES(?,?)',(rid,searchable));count+=1
+            c.execute('INSERT INTO search(rowid,id,text) VALUES(?,?,?)',(rowid,rid,searchable));count+=1
         c.execute('INSERT OR REPLACE INTO resources VALUES(?,?,?,?)',(resource['url'],resource.get('last_modified'),fetched,count))
     return count
 
@@ -113,7 +138,7 @@ async def refresh(force=False):
                 with connect() as c:
                     for (url,) in c.execute('SELECT url FROM resources').fetchall():
                         if url not in keep:
-                            for (rid,) in c.execute('SELECT id FROM docs WHERE resource=?',(url,)).fetchall():c.execute('DELETE FROM search WHERE id=?',(rid,))
+                            for (rowid,) in c.execute('SELECT rowid FROM docs WHERE resource=?',(url,)).fetchall():c.execute('DELETE FROM search WHERE rowid=?',(rowid,))
                             c.execute('DELETE FROM docs WHERE resource=?',(url,));c.execute('DELETE FROM resources WHERE url=?',(url,))
             STATE={'status':'partial' if warnings else 'ready','resources':resources,'warnings':warnings,'complete':False,'updated_at':now(),
                 'coverage_description':f'Até {per_dataset} lotes JSON mais recentes de cada conjunto de espelhos; não cobre todo o histórico do STJ.'}
