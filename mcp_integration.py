@@ -78,14 +78,14 @@ def build_mcp(rest_app: FastAPI, settings: Settings):
             required_scopes=[SCOPE], validate_token_resource=True),
         transport_security=TransportSecuritySettings(
             allowed_hosts=[origin.netloc], allowed_origins=[f"{origin.scheme}://{origin.netloc}", "https://chatgpt.com"]),
-        instructions="Catálogo estático de legislação e links de portais. Confirme vigência e decisões nas fontes oficiais.")
-    annotations = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+        instructions="Documentos oficiais com cobertura parcial explícita. Considere warnings, coverage e retrieval_status; não certifique vigência ou inteiro teor não recuperados.")
+    annotations = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True)
 
     async def call(path, params=None):
         key = os.getenv("API_KEY", "")
         if not key:
             raise ValueError("REST authentication is not configured")
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=rest_app), base_url="http://internal", timeout=15) as client:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=rest_app), base_url="http://internal", timeout=55) as client:
             response = await client.get(path, params={k:v for k,v in (params or {}).items() if v is not None and k in {"q", "area", "source_type", "official_source", "only_current", "limit", "act_type", "include_revoked", "tribunal", "precedent_only"}},
                 headers={"Authorization": "Bearer " + key})
         if response.status_code != 200:
@@ -100,7 +100,7 @@ def build_mcp(rest_app: FastAPI, settings: Settings):
 
     @mcp.tool(annotations=annotations)
     async def listSources() -> dict:
-        """Lista as fontes cadastradas, sem garantir consulta em tempo real."""
+        """Lista fontes e capacidades reais; indica conectores pendentes e cobertura parcial."""
         return await call("/v1/sources")
 
     @mcp.tool(annotations=annotations)
@@ -112,21 +112,21 @@ def build_mcp(rest_app: FastAPI, settings: Settings):
     async def searchLegalContent(q: Annotated[str, Field(min_length=2)], area: str | None=None,
         source_type: str | None=None, official_source: str | None=None, only_current: bool=True,
         limit: Annotated[int, Field(ge=1, le=20)]=5) -> dict:
-        """Pesquisa catálogo fixo e links de portais; os filtros mantêm as limitações da REST original."""
+        """Recupera legislação federal e espelhos do STJ; aplica filtros e informa cobertura e falhas das fontes."""
         return await call("/v1/search", locals())
 
     @mcp.tool(annotations=annotations)
     async def searchLegislation(q: Annotated[str, Field(min_length=2)], area: str | None=None,
         official_source: str | None=None, act_type: str | None=None, only_current: bool=True,
         include_revoked: bool=False, limit: Annotated[int, Field(ge=1, le=20)]=5) -> dict:
-        """Pesquisa 14 normas cadastradas. Datas de resposta não comprovam verificação de vigência."""
+        """Busca normas federais nas fontes oficiais e recupera texto. Ausência de revogação expressa não certifica vigência integral."""
         return await call("/v1/legislation", locals())
 
     @mcp.tool(annotations=annotations)
     async def searchJurisprudence(q: Annotated[str, Field(min_length=2)], area: str | None=None,
         tribunal: str | None=None, precedent_only: bool=False,
         limit: Annotated[int, Field(ge=1, le=20)]=5) -> dict:
-        """Retorna links de portais oficiais, NÃO acórdãos ou precedentes efetivamente pesquisados."""
+        """Pesquisa espelhos reais do STJ em janela parcial; não recupera inteiro teor. STF/CNJ/TCU pendentes são informados explicitamente."""
         return await call("/v1/jurisprudence", locals())
 
     return mcp, verifier
