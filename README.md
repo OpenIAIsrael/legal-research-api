@@ -1,4 +1,4 @@
-# Legal Research API 4.1
+# Legal Research API 4.1.1
 
 Serviço FastAPI com as seis ferramentas MCP autenticadas por OAuth/Auth0. As rotas REST continuam exigindo o Bearer legado. Nenhuma credencial é armazenada neste repositório.
 
@@ -57,3 +57,7 @@ URLs e redirecionamentos passam por lista fechada de hosts oficiais HTTPS, sem c
 ## Reversão
 
 Se a nova versão falhar, publique no Render o commit anteriormente saudável `f311c6afb9976e7083adc092a21973263abfa5f9`. Esse retorno restaura também as limitações de pesquisa da versão 4.0. O índice pode ser reconstruído; não há migração de dados privados.
+
+## Ajuste 4.1.1 após teste no Render
+
+O leitor PDF usa PDFium com mutex obrigatório para evitar chamadas nativas concorrentes. A extração da Lei 14.133/2021 excedia o prazo com o leitor Python no servidor; o processamento nativo reduz esse custo. A tabela de busca STJ usa `rowid` para exclusão/substituição eficiente, evitando varredura completa por acórdão. O índice derivado é migrado automaticamente sem apagar os registros-fonte.
