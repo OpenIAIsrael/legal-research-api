@@ -2,6 +2,7 @@
 import asyncio
 import hashlib
 import ipaddress
+import logging
 import socket
 import time
 from datetime import datetime, timezone
@@ -10,7 +11,21 @@ import httpx
 
 HOSTS={'www.lexml.gov.br','www.planalto.gov.br','www.camara.leg.br','www2.camara.leg.br','dadosabertos.web.stj.jus.br','scon.stj.jus.br','processo.stj.jus.br'}
 CACHE={}
+LOGGER=logging.getLogger(__name__)
 class SourceError(Exception):pass
+
+def network_failure(exc):
+    """Classify failures without copying exception text, URLs or credentials."""
+    chain=[];seen=set();current=exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current));chain.append(current)
+        current=current.__cause__ or current.__context__
+    if any(isinstance(e,socket.gaierror) for e in chain):return 'dns_error'
+    if isinstance(exc,(httpx.TimeoutException,TimeoutError)):return 'timeout'
+    if isinstance(exc,httpx.ConnectError):return 'connection_error'
+    if isinstance(exc,httpx.HTTPError):return 'transport_error'
+    if isinstance(exc,OSError):return 'os_error'
+    return 'invalid_response'
 
 def now():return datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
 
@@ -33,16 +48,19 @@ async def fetch(url,params=None,max_bytes=6_000_000,ttl=3600,request_timeout=18)
     cached=CACHE.get(request_url)
     if cached and time.monotonic()-cached[0]<ttl:
         return dict(cached[1],cache_hit=True)
+    started=time.monotonic()
+    current=request_url
     try:
         async with asyncio.timeout(request_timeout):
             async with httpx.AsyncClient(timeout=httpx.Timeout(min(request_timeout,25),connect=5),follow_redirects=False,headers={'User-Agent':'LegalResearchAPI/4.1 (+official-document-retrieval)'}) as client:
-                current=request_url
                 for _ in range(4):
                     validate_url(current)  # Exact host allowlist; the configured transport/proxy resolves DNS.
                     async with client.stream('GET',current) as r:
                         if r.status_code in (301,302,303,307,308):
                             current=urljoin(current,r.headers.get('location',''));continue
-                        if r.status_code!=200:raise SourceError(f'Fonte retornou HTTP {r.status_code}')
+                        if r.status_code!=200:
+                            LOGGER.warning('official_source_http host=%s status=%s elapsed_ms=%d',urlparse(current).hostname,r.status_code,int((time.monotonic()-started)*1000))
+                            raise SourceError(f'Fonte retornou HTTP {r.status_code}')
                         length=r.headers.get('content-length')
                         if length and int(length)>max_bytes:raise SourceError('Documento excede o limite de tamanho')
                         chunks=[];size=0
@@ -63,4 +81,6 @@ async def fetch(url,params=None,max_bytes=6_000_000,ttl=3600,request_timeout=18)
                         return result
                 raise SourceError('Excesso de redirecionamentos')
     except (httpx.HTTPError,TimeoutError,OSError,ValueError) as e:
-        raise SourceError('Falha de rede, tempo ou formato na fonte oficial') from None
+        category=network_failure(e)
+        LOGGER.warning('official_source_failure host=%s category=%s exception=%s elapsed_ms=%d',urlparse(current).hostname,category,type(e).__name__,int((time.monotonic()-started)*1000))
+        raise SourceError(f'Falha de rede, tempo ou formato na fonte oficial ({category})') from None
