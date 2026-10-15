@@ -112,7 +112,7 @@ def build_mcp(rest_app: FastAPI, settings: Settings):
     async def searchLegalContent(q: Annotated[str, Field(min_length=2)], area: str | None=None,
         source_type: str | None=None, official_source: str | None=None, only_current: bool=True,
         limit: Annotated[int, Field(ge=1, le=20)]=5) -> dict:
-        """Recupera legislação federal e espelhos do STJ; aplica filtros e informa cobertura e falhas das fontes."""
+        """Recupera legislação, registros STJ/CNJ e decisões TCU; informa limites, cache e indisponibilidade do STF."""
         return await call("/v1/search", locals())
 
     @mcp.tool(annotations=annotations)
@@ -126,7 +126,7 @@ def build_mcp(rest_app: FastAPI, settings: Settings):
     async def searchJurisprudence(q: Annotated[str, Field(min_length=2)], area: str | None=None,
         tribunal: str | None=None, precedent_only: bool=False,
         limit: Annotated[int, Field(ge=1, le=20)]=5) -> dict:
-        """Pesquisa espelhos reais do STJ em janela parcial; não recupera inteiro teor. STF/CNJ/TCU pendentes são informados explicitamente."""
+        """Pesquisa STJ (espelhos e íntegra em janela parcial), CNJ (Infojuris) e TCU (CSV oficial). STF bloqueado é informado sem inventar documentos."""
         return await call("/v1/jurisprudence", locals())
 
     return mcp, verifier
