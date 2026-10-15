@@ -7,26 +7,28 @@ from typing import Optional
 from fastapi import FastAPI, Header, HTTPException, Query
 import legislation
 import stj_index
+import court_index
+import jurisprudence
 from catalog import LEGAL_AREAS
 from official_http import now
 
-VERSION='4.1.1'
+VERSION='4.2.0'
 API_KEY=os.getenv('API_KEY','')
 SOURCES=[
  {'id':'camara','name':'Câmara dos Deputados','type':'fontes_oficiais','official':True,'capability':'federal_legislation_live'},
  {'id':'planalto','name':'Planalto','type':'fontes_oficiais','official':True,'capability':'seeded_document_retrieval','limitation':'Discovery restricted to local seeds; network availability varies.'},
  {'id':'lexml','name':'LexML','type':'fontes_oficiais','official':True,'capability':'sru_discovery','limitation':'Security challenge observed; never bypassed.'},
- {'id':'stj','name':'STJ','type':'fontes_oficiais','official':True,'capability':'judgment_records_rolling_index','limitation':'Recent official Espelhos JSON resources; not full historical corpus or full opinions.'},
+ {'id':'stj','name':'STJ','type':'fontes_oficiais','official':True,'capability':'judgment_records_and_bounded_full_text','limitation':'Rolling Espelhos index plus three recent daily full-text ZIPs; incomplete history and missing ZIP texts are explicit.'},
  {'id':'stf','name':'STF','type':'fontes_oficiais','official':True,'capability':'unavailable','limitation':'HTTP 403 observed; document connector pending.'},
- {'id':'cnj','name':'CNJ','type':'fontes_oficiais','official':True,'capability':'not_implemented'},
- {'id':'tcu','name':'TCU','type':'fontes_oficiais','official':True,'capability':'not_implemented'}]
+ {'id':'cnj','name':'CNJ','type':'fontes_oficiais','official':True,'capability':'public_infojuris_records','limitation':'Up to ten first search candidates; ementa and certification, not full opinions or qualified precedents.'},
+ {'id':'tcu','name':'TCU','type':'fontes_oficiais','official':True,'capability':'bounded_official_csv_index','limitation':'Current-year full decisions, consultation excerpts and sumulas; no full historical coverage.'}]
 
 @asynccontextmanager
 async def lifespan(app):
-    task=asyncio.create_task(stj_index.maintenance()) if os.getenv('LEGAL_INDEX_BACKGROUND','1')=='1' else None
+    tasks=[asyncio.create_task(stj_index.maintenance()),asyncio.create_task(court_index.maintenance())] if os.getenv('LEGAL_INDEX_BACKGROUND','1')=='1' else []
     try:yield
     finally:
-        if task:
+        for task in tasks:
             task.cancel()
             with suppress(asyncio.CancelledError):await task
 
@@ -46,7 +48,7 @@ def envelope(q,result,**filters):
 @app.get('/health')
 def health(authorization:Optional[str]=Header(None)):
     require_bearer(authorization)
-    return {'status':'healthy','api':'Legal Research API','version':VERSION,'timestamp':now(),'commit':os.getenv('RENDER_GIT_COMMIT'),'stj_index_status':stj_index.STATE['status']}
+    return {'status':'healthy','api':'Legal Research API','version':VERSION,'timestamp':now(),'commit':os.getenv('RENDER_GIT_COMMIT'),'stj_index_status':stj_index.STATE['status'],'court_indexes':{s:v['status'] for s,v in court_index.STATE.items()}}
 
 @app.get('/v1/sources')
 def list_sources(authorization:Optional[str]=Header(None)):
@@ -68,7 +70,7 @@ async def search_jurisprudence(q:str=Query(...,min_length=2,max_length=500),area
     precedent_only:bool=False,limit:int=Query(5,ge=1,le=20),authorization:Optional[str]=Header(None)):
     require_bearer(authorization);validate_filters(area)
     if tribunal and tribunal not in {'stf','stj','cnj','tcu'}:raise HTTPException(422,'Tribunal inválido')
-    result=await stj_index.search(q,area,tribunal,precedent_only,limit)
+    result=await jurisprudence.search(q,area,tribunal,precedent_only,limit)
     return envelope(q,result,area=area,tribunal=tribunal,precedent_only=precedent_only)
 
 @app.get('/v1/search')
@@ -80,7 +82,7 @@ async def search_legal_content(q:str=Query(...,min_length=2,max_length=500),area
     if source_type in (None,'legislacao','fontes_oficiais') and official_source in (None,'camara','planalto','lexml'):
         operations.append(legislation.search(q,area,official_source,only_current=only_current,limit=limit))
     if source_type in (None,'jurisprudencia','fontes_oficiais') and official_source in (None,'stj','stf','cnj','tcu'):
-        operations.append(stj_index.search(q,area,official_source,limit=limit))
+        operations.append(jurisprudence.search(q,area,official_source,limit=limit))
     parts=await asyncio.gather(*operations)
     # Round-robin avoids letting either source type crowd out the other.
     results=[]

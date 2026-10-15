@@ -1,0 +1,269 @@
+{
+  "tested_at": "2026-10-15T13:59:20.050799Z",
+  "environment": "local_public_source_network_checks",
+  "cases": [
+    {
+      "query": "concurso",
+      "results": [
+        {
+          "title": "PCA - Procedimento de Controle Administrativo 0003643-82.2026.2.00.0000",
+          "tribunal": "cnj",
+          "class": "PCA - Procedimento de Controle Administrativo",
+          "case_number": "0003643-82.2026.2.00.0000",
+          "record_id": "56798",
+          "judgment_date": "2026-10-02",
+          "publication_date": null,
+          "url": "https://www.cnj.jus.br/InfojurisI2/Jurisprudencia.seam?jurisprudenciaIdJuris=56798",
+          "source_record_locator": null,
+          "retrieval_status": "judgment_record_retrieved",
+          "full_text_retrieved": false,
+          "text_characters": null,
+          "content_sha256": "2a7eb3fd4c297f6dd46a28ed6a2d9547f492a120d57e62e1fba2f0e4d114fe37",
+          "precedent": false,
+          "precedent_evidence": null
+        },
+        {
+          "title": "PCA - Procedimento de Controle Administrativo 0003640-30.2026.2.00.0000",
+          "tribunal": "cnj",
+          "class": "PCA - Procedimento de Controle Administrativo",
+          "case_number": "0003640-30.2026.2.00.0000",
+          "record_id": "56803",
+          "judgment_date": "2026-10-02",
+          "publication_date": null,
+          "url": "https://www.cnj.jus.br/InfojurisI2/Jurisprudencia.seam?jurisprudenciaIdJuris=56803",
+          "source_record_locator": null,
+          "retrieval_status": "judgment_record_retrieved",
+          "full_text_retrieved": false,
+          "text_characters": null,
+          "content_sha256": "679306ddb43697b65a11a4c1c225094ad3c1811f2fedec9d6ba8cbf93f1a0740",
+          "precedent": false,
+          "precedent_evidence": null
+        }
+      ],
+      "warnings": [
+        "CNJ: primeiros dez candidatos no máximo, com ementa e certidão; inteiro teor e precedentes qualificados não confirmados."
+      ],
+      "retrieval_status": "judgment_records_retrieved",
+      "coverage": {
+        "tribunal": "cnj",
+        "complete": false,
+        "method": "public_infojuris",
+        "max_candidates": 2,
+        "source_total": 2470
+      }
+    },
+    {
+      "query": "licitação",
+      "results": [
+        {
+          "title": "Acórdão 1904/2008 — Consulta TCU",
+          "tribunal": "tcu",
+          "class": "resposta_consulta",
+          "case_number": null,
+          "record_id": "JURISPRUDENCIA-SELECIONADA-37113",
+          "judgment_date": "2008-09-03",
+          "publication_date": null,
+          "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/resposta-consulta/resposta-consulta.csv",
+          "source_record_locator": {
+            "resource_url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/resposta-consulta/resposta-consulta.csv",
+            "record_id": "JURISPRUDENCIA-SELECIONADA-37113"
+          },
+          "retrieval_status": "official_excerpt_retrieved",
+          "full_text_retrieved": false,
+          "text_characters": 5478,
+          "content_sha256": "3aa435a783f3a3d36a285416cda29e6584a9d16c47ab5a806c4f49f4f87a0e8c",
+          "precedent": false,
+          "precedent_evidence": null
+        },
+        {
+          "title": "Acórdão 1904/2008 — Consulta TCU",
+          "tribunal": "tcu",
+          "class": "resposta_consulta",
+          "case_number": null,
+          "record_id": "JURISPRUDENCIA-SELECIONADA-31542",
+          "judgment_date": "2008-09-03",
+          "publication_date": null,
+          "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/resposta-consulta/resposta-consulta.csv",
+          "source_record_locator": {
+            "resource_url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/resposta-consulta/resposta-consulta.csv",
+            "record_id": "JURISPRUDENCIA-SELECIONADA-31542"
+          },
+          "retrieval_status": "official_excerpt_retrieved",
+          "full_text_retrieved": false,
+          "text_characters": 5404,
+          "content_sha256": "3aa435a783f3a3d36a285416cda29e6584a9d16c47ab5a806c4f49f4f87a0e8c",
+          "precedent": false,
+          "precedent_evidence": null
+        }
+      ],
+      "warnings": [],
+      "retrieval_status": "documents_retrieved",
+      "coverage": {
+        "status": "ready",
+        "resources": [
+          {
+            "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/acordao-completo/acordao-completo-2026.csv",
+            "retrieved_at": "2026-10-15T13:59:49.732763Z",
+            "source_last_modified": "Fri, 02 Oct 2026 18:12:08 GMT",
+            "content_sha256": "37816ac86fa223bea0cdbd796ab973c6b76eb6d5b870b7632354face2b8f81ab",
+            "bytes": 323489412
+          },
+          {
+            "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/resposta-consulta/resposta-consulta.csv",
+            "retrieved_at": "2026-10-15T13:59:50.060472Z",
+            "source_last_modified": "Fri, 02 Oct 2026 18:12:15 GMT",
+            "content_sha256": "3aa435a783f3a3d36a285416cda29e6584a9d16c47ab5a806c4f49f4f87a0e8c",
+            "bytes": 7181063
+          },
+          {
+            "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/sumula/sumula.csv",
+            "retrieved_at": "2026-10-15T13:59:50.286644Z",
+            "source_last_modified": "Fri, 02 Oct 2026 18:12:13 GMT",
+            "content_sha256": "61bb885db089fe5fd206aeb14692a162559daa7de7d45c43c1f601a81782616d",
+            "bytes": 823708
+          }
+        ],
+        "records": 13759,
+        "warnings": [],
+        "complete": false,
+        "updated_at": "2026-10-15T14:03:01.167123Z",
+        "coverage_description": "Acórdãos do ano 2026, respostas a consultas e súmulas; não cobre todos os anos.",
+        "tribunal": "tcu"
+      }
+    },
+    {
+      "query": "recurso",
+      "results": [
+        {
+          "title": " AREsp 3335301 — íntegra STJ",
+          "tribunal": "stj",
+          "class": "DECISÃO",
+          "case_number": "AREsp 3335301",
+          "record_id": "403422358",
+          "judgment_date": null,
+          "publication_date": "2026-10-08",
+          "url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/1ddc2ece-6ae5-48ea-b178-ae23b30bbf86/download/textos20261008.zip",
+          "source_record_locator": {
+            "resource_url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/1ddc2ece-6ae5-48ea-b178-ae23b30bbf86/download/textos20261008.zip",
+            "archive_member": "403422358.txt",
+            "record_id": "403422358"
+          },
+          "retrieval_status": "full_text_retrieved",
+          "full_text_retrieved": true,
+          "text_characters": 3614,
+          "content_sha256": "84349931cb1292de87de6f615fe41c7e127eb97b906c75cd1a80754b359d1d70",
+          "precedent": false,
+          "precedent_evidence": null
+        },
+        {
+          "title": " AREsp 3196481 — íntegra STJ",
+          "tribunal": "stj",
+          "class": "DECISÃO",
+          "case_number": "AREsp 3196481",
+          "record_id": "378802014",
+          "judgment_date": null,
+          "publication_date": "2026-10-07",
+          "url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/db6c0bd7-bb35-448b-9c6d-9551cf031cc5/download/textos20261007.zip",
+          "source_record_locator": {
+            "resource_url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/db6c0bd7-bb35-448b-9c6d-9551cf031cc5/download/textos20261007.zip",
+            "archive_member": "378802014.txt",
+            "record_id": "378802014"
+          },
+          "retrieval_status": "full_text_retrieved",
+          "full_text_retrieved": true,
+          "text_characters": 3799,
+          "content_sha256": "cd4d968849c35592d1bc049a4a6d4a47b71fd1d28b026d049ac3bb7655977524",
+          "precedent": false,
+          "precedent_evidence": null
+        }
+      ],
+      "warnings": [
+        "Lote 20261006: 2 textos recuperados para 1395 metadados; pares ausentes não são apresentados como íntegra.",
+        "Lote 20261007: 11 textos recuperados para 2721 metadados; pares ausentes não são apresentados como íntegra.",
+        "Lote 20261008: 37 textos recuperados para 2004 metadados; pares ausentes não são apresentados como íntegra."
+      ],
+      "retrieval_status": "documents_retrieved",
+      "coverage": {
+        "status": "ready",
+        "resources": [
+          {
+            "date": "20261006",
+            "metadata_url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/06b08d9e-f53f-4d8e-981a-fdeffc85b1ae/download/metadados20261006.json",
+            "url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/120fc05c-56ab-4075-bce6-a9ba132b491e/download/textos20261006.zip",
+            "retrieved_at": "2026-10-15T13:59:23.491890Z",
+            "metadata_records": 1395,
+            "text_records": 2,
+            "sha256": "2f8cdd4b3153d781a412b1932d5d46e8a715c2a37e67c63e5fc025ddd4afcef4"
+          },
+          {
+            "date": "20261007",
+            "metadata_url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/ac13c29f-e42e-464d-825e-5b742cba692e/download/metadados20261007.json",
+            "url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/db6c0bd7-bb35-448b-9c6d-9551cf031cc5/download/textos20261007.zip",
+            "retrieved_at": "2026-10-15T13:59:24.967000Z",
+            "metadata_records": 2721,
+            "text_records": 11,
+            "sha256": "c01d02dbc120a768456c0f2d8934b88e9863411a3aea4b5443b7233fd0833d09"
+          },
+          {
+            "date": "20261008",
+            "metadata_url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/794696ee-dd9e-4e9f-85a7-7ae73c20fd59/download/metadados20261008.json",
+            "url": "https://dadosabertos.web.stj.jus.br/dataset/a2cd85cc-1391-4ebc-aeed-a45dd75a7987/resource/1ddc2ece-6ae5-48ea-b178-ae23b30bbf86/download/textos20261008.zip",
+            "retrieved_at": "2026-10-15T13:59:30.565964Z",
+            "metadata_records": 2004,
+            "text_records": 37,
+            "sha256": "3d4be74aa1344d59fdd62260cea91d57be84e60b7caa6e6ce432b39eb5ab8ce8"
+          }
+        ],
+        "records": 50,
+        "warnings": [
+          "Lote 20261006: 2 textos recuperados para 1395 metadados; pares ausentes não são apresentados como íntegra.",
+          "Lote 20261007: 11 textos recuperados para 2721 metadados; pares ausentes não são apresentados como íntegra.",
+          "Lote 20261008: 37 textos recuperados para 2004 metadados; pares ausentes não são apresentados como íntegra."
+        ],
+        "complete": false,
+        "updated_at": "2026-10-15T13:59:34.431958Z",
+        "coverage_description": "Até três lotes diários mais recentes com JSON e ZIP correspondentes; não cobre todo o histórico nem textos ausentes do ZIP.",
+        "tribunal": "stj"
+      }
+    },
+    {
+      "query": "imunidade",
+      "results": [],
+      "warnings": [
+        "STF: Fonte retornou HTTP 403. É necessário acesso automatizado permitido para homologar a recuperação documental."
+      ],
+      "retrieval_status": "source_unavailable",
+      "coverage": {
+        "tribunal": "stf",
+        "complete": false,
+        "probe_checked_at": "2026-10-15T14:03:01.531017Z"
+      }
+    },
+    {
+      "query": "007.765/2025-8",
+      "results": [
+        {
+          "title": "ACÓRDÃO DE RELAÇÃO 1908/2026 ATA 12/2026 - SEGUNDA CÂMARA",
+          "record_id": "ACORDAO-COMPLETO-2764312",
+          "case_number": "007.765/2026-6",
+          "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/acordao-completo/acordao-completo-2026.csv",
+          "retrieval_status": "full_text_retrieved",
+          "full_text_retrieved": true,
+          "text_characters": 942,
+          "content_sha256": "37816ac86fa223bea0cdbd796ab973c6b76eb6d5b870b7632354face2b8f81ab"
+        },
+        {
+          "title": "ACÓRDÃO DE RELAÇÃO 2457/2026 ATA 35/2026 - PLENÁRIO",
+          "record_id": "ACORDAO-COMPLETO-2779855",
+          "case_number": "007.217/2026-9",
+          "url": "https://sites.tcu.gov.br/dados-abertos/jurisprudencia/arquivos/acordao-completo/acordao-completo-2026.csv",
+          "retrieval_status": "full_text_retrieved",
+          "full_text_retrieved": true,
+          "text_characters": 3467,
+          "content_sha256": "37816ac86fa223bea0cdbd796ab973c6b76eb6d5b870b7632354face2b8f81ab"
+        }
+      ],
+      "environment": "same_official_tcu_index_loaded_in_this_validation"
+    }
+  ]
+}
