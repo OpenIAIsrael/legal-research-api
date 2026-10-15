@@ -126,7 +126,7 @@ def build_mcp(rest_app: FastAPI, settings: Settings):
     async def searchJurisprudence(q: Annotated[str, Field(min_length=2)], area: str | None=None,
         tribunal: str | None=None, precedent_only: bool=False,
         limit: Annotated[int, Field(ge=1, le=20)]=5) -> dict:
-        """Pesquisa STJ (espelhos e íntegra em janela parcial), CNJ (Infojuris) e TCU (CSV oficial). STF bloqueado é informado sem inventar documentos."""
+        """Pesquisa STJ (espelhos/íntegra parcial), CNJ (Infojuris ou informativos identificados) e TCU (CSV oficial). STF bloqueado é informado sem inventar documentos."""
         return await call("/v1/jurisprudence", locals())
 
     return mcp, verifier

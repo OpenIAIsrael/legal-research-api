@@ -37,6 +37,24 @@ def test_cnj_public_search_routes_to_individual_document(monkeypatch):
     assert calls[1][1]['data']['f:queryStringExibicao']=='concurso'
     assert result['coverage']['source_total']==1
 
+@pytest.mark.parametrize('pdf_number,expected', [('9',1),('8',0)])
+def test_cnj_alternative_is_identified_and_matches_pdf_identity(monkeypatch,pdf_number,expected):
+    listing='<table><tr><td><a href="/files/real.pdf">Informativo de Jurisprudência</a></td><td>9</td><td>22/06/2026</td><td>Concurso público.</td></tr></table>'
+    async def fake(url,**kwargs):
+        if url==cnj_source.SEARCH:raise SourceError('Fonte retornou HTTP 403')
+        if url==cnj_source.BULLETINS:return response(listing,cnj_source.BULLETINS)
+        return {**response('',url),'body':b'%PDF-test','cache_hit':False}
+    monkeypatch.setattr(cnj_source,'fetch',fake)
+    monkeypatch.setattr(cnj_source,'extract_pdf',lambda raw:f'Informativo de Jurisprudência CNJ Número {pdf_number}/2026. Concurso público. '+('Resumo não oficial. '*12))
+    result=asyncio.run(cnj_source.search('concurso',limit=1))
+    assert len(result['results'])==expected
+    assert '403' in result['warnings'][0]
+    if expected:
+        doc=result['results'][0]
+        assert doc['case_number'] is None and doc['judgment_date'] is None
+        assert doc['content_nature']=='resumos_nao_oficiais_publicados_pelo_cnj'
+        assert doc['bulletin_full_text_retrieved'] and not doc['full_text_retrieved']
+
 def test_cnj_failure_not_empty_success(monkeypatch):
     async def fake(url,**kwargs):return response('Página de login')
     monkeypatch.setattr(cnj_source,'fetch',fake)
