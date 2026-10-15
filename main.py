@@ -12,7 +12,7 @@ import jurisprudence
 from catalog import LEGAL_AREAS
 from official_http import now
 
-VERSION='4.2.0'
+VERSION='4.2.1'
 API_KEY=os.getenv('API_KEY','')
 SOURCES=[
  {'id':'camara','name':'Câmara dos Deputados','type':'fontes_oficiais','official':True,'capability':'federal_legislation_live'},
@@ -20,7 +20,7 @@ SOURCES=[
  {'id':'lexml','name':'LexML','type':'fontes_oficiais','official':True,'capability':'sru_discovery','limitation':'Security challenge observed; never bypassed.'},
  {'id':'stj','name':'STJ','type':'fontes_oficiais','official':True,'capability':'judgment_records_and_bounded_full_text','limitation':'Rolling Espelhos index plus three recent daily full-text ZIPs; incomplete history and missing ZIP texts are explicit.'},
  {'id':'stf','name':'STF','type':'fontes_oficiais','official':True,'capability':'unavailable','limitation':'HTTP 403 observed; document connector pending.'},
- {'id':'cnj','name':'CNJ','type':'fontes_oficiais','official':True,'capability':'public_infojuris_records','limitation':'Up to ten first search candidates; ementa and certification, not full opinions or qualified precedents.'},
+ {'id':'cnj','name':'CNJ','type':'fontes_oficiais','official':True,'capability':'infojuris_records_and_official_bulletins','limitation':'Infojuris availability varies by network; official bulletins are separately labeled, not full opinions or qualified precedents.'},
  {'id':'tcu','name':'TCU','type':'fontes_oficiais','official':True,'capability':'bounded_official_csv_index','limitation':'Current-year full decisions, consultation excerpts and sumulas; no full historical coverage.'}]
 
 @asynccontextmanager

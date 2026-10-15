@@ -149,8 +149,7 @@ async def refresh_tcu(force=False):
 
 async def maintenance():
     while True:
-        await refresh_tcu()
-        await refresh_stj_full()
+        await asyncio.gather(refresh_tcu(),refresh_stj_full())
         await asyncio.sleep(86400)
 
 def zip_documents(metadata,raw,resource):

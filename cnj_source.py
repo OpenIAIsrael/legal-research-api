@@ -4,11 +4,62 @@ import re
 from datetime import datetime
 from urllib.parse import urljoin,urlparse,parse_qs,urlencode
 import httpx
+import pypdfium2 as pdfium
 from bs4 import BeautifulSoup
 from official_http import fetch,SourceError,validate_url
-from search_core import normalize
+from search_core import normalize,tokens
+from legislation import extract_pdf,excerpt
 
 SEARCH='https://www.cnj.jus.br/InfojurisI2/JurisprudenciaSearch.seam'
+BULLETINS='https://atos.cnj.jus.br/jurisprudencia'
+
+def bulletin_candidates(response,q):
+    wanted=set(tokens(q));found=[]
+    s=soup_of(response['body'])
+    if not any('informativo de jurisprud' in normalize(table.get_text(' ',strip=True)) for table in s.select('table')):raise SourceError('Listagem de Informativos CNJ não confirmada')
+    for row in s.select('tr'):
+        cells=row.find_all('td',recursive=False)
+        if len(cells)<4 or 'informativo de jurisprud' not in normalize(cells[0].get_text()):continue
+        number=cells[1].get_text(' ',strip=True);date=cells[2].get_text(' ',strip=True)
+        link=cells[0].find('a',href=True)
+        if not number.isdigit() or not link:continue
+        try:published=datetime.strptime(date,'%d/%m/%Y').date().isoformat()
+        except ValueError:continue
+        url=urljoin(response['url'],link['href']);p=validate_url(url)
+        if p.hostname!='atos.cnj.jus.br' or not p.path.startswith('/files/') or not p.path.endswith('.pdf'):continue
+        summary=cells[3].get_text(' ',strip=True);score=len(wanted & set(tokens(summary)))
+        if score:found.append({'number':number,'published':published,'url':url,'summary':summary,'score':score})
+    return sorted(found,key=lambda d:-d['score'])[:2]
+
+async def search_bulletins(q,limit=5):
+    """Separate official publication channel; results are bulletins, never disguised as opinions."""
+    result={'results':[],'warnings':[],'retrieval_status':'source_unavailable','coverage':{'tribunal':'cnj','complete':False,'method':'official_bulletins','max_candidates':min(limit,2)}}
+    try:
+        async with asyncio.timeout(28):
+            listing=await fetch(BULLETINS)
+            candidates=bulletin_candidates(listing,q)
+            for item in candidates[:min(limit,2)]:
+                response=await fetch(item['url'],max_bytes=8_000_000)
+                if not response['body'].startswith(b'%PDF'):raise SourceError('Informativo CNJ não retornou PDF')
+                full=await asyncio.wait_for(asyncio.to_thread(extract_pdf,response['body']),timeout=12)
+                header=normalize(full[:1500])
+                if len(full)<100 or 'informativo' not in header or not re.search(r'numero\s+'+item['number']+r'\s*/\s*'+item['published'][:4]+r'\b',header):raise SourceError('Identidade do Informativo CNJ não confirmada no PDF')
+                # Require all lexical terms in the actual recovered PDF, not only its listing summary.
+                if not set(tokens(q)).issubset(set(tokens(full))):continue
+                result['results'].append({'title':f"Informativo de Jurisprudência CNJ nº {item['number']} ({item['published']})",'tribunal':'cnj',
+                    'class':'informativo_jurisprudencia','document_type':'official_bulletin','content_nature':'resumos_nao_oficiais_publicados_pelo_cnj','case_number':None,
+                    'record_id':'informativo-'+item['published'][:4]+'-'+item['number'],'judgment_date':None,'publication_date':item['published'],
+                    'official_source':'cnj','source':'cnj','source_type':'jurisprudencia','url':response['url'],'metadata_url':BULLETINS,
+                    'summary':item['summary'][:1400],'text_excerpt':excerpt(full,q),'text_characters':len(full),'excerpt_truncated':len(full)>9000,
+                    'full_text_retrieved':False,'bulletin_full_text_retrieved':True,'retrieval_status':'official_bulletin_retrieved',
+                    'precedent':False,'precedent_evidence':None,'area':None,'retrieved_at':response['retrieved_at'],
+                    'source_last_modified':response['source_last_modified'],'content_sha256':response['sha256'],'cache_hit':response['cache_hit']})
+            result['retrieval_status']='official_bulletins_retrieved' if result['results'] else 'no_results_in_coverage'
+            result['warnings'].append('CNJ: publicação de informativos com resumos não oficiais, conforme ressalva do próprio PDF; não equivale ao inteiro teor nem confirma o conteúdo final do acórdão publicado no DJ-e. Até dois PDFs da primeira página com assunto correspondente; cobertura parcial.')
+    except (SourceError,TimeoutError,ValueError,pdfium.PdfiumError) as e:
+        result['warnings'].append(str(e) if isinstance(e,SourceError) else 'Falha ou limite de extração do Informativo CNJ.')
+        if result['results']:result['retrieval_status']='partial'
+    return result
 
 def soup_of(raw):
     # The page declares an incorrect Latin-1 encoding while serving UTF-8.
@@ -67,7 +118,7 @@ async def search(q,area=None,precedent_only=False,limit=5):
         result.update(retrieval_status='unsupported_filter',warnings=['Infojuris não confirma classificação de área ou precedente qualificado; filtro solicitado não pode ser satisfeito.'])
         return result
     try:
-        async with asyncio.timeout(45),httpx.AsyncClient(timeout=httpx.Timeout(15,connect=5),follow_redirects=False,headers={'User-Agent':'LegalResearchAPI/4.2'}) as client:
+        async with asyncio.timeout(20),httpx.AsyncClient(timeout=httpx.Timeout(15,connect=5),follow_redirects=False,headers={'User-Agent':'LegalResearchAPI/4.2'}) as client:
             page=await fetch(SEARCH,client=client,ttl=0)
             action,data=search_form(page,q)
             found=await fetch(action,client=client,method='POST',data=data,ttl=0)
@@ -90,4 +141,8 @@ async def search(q,area=None,precedent_only=False,limit=5):
     except (SourceError,TimeoutError,httpx.HTTPError) as e:
         result['warnings'].append(str(e) if isinstance(e,SourceError) else 'Infojuris: falha de rede ou limite de tempo.')
         if result['results']:result['retrieval_status']='partial'
+        else:
+            alternative=await search_bulletins(q,limit)
+            alternative['warnings']=['Infojuris indisponível: '+w for w in result['warnings']]+alternative['warnings']
+            return alternative
     return result
