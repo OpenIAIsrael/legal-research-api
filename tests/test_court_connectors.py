@@ -141,3 +141,20 @@ def test_tribunal_routing_does_not_replace_cnj_with_stj(monkeypatch):
     monkeypatch.setattr(cnj_source,'search',cnj)
     result=asyncio.run(jurisprudence.search('concurso',tribunal='cnj'))
     assert result['warnings']==['CNJ only'] and result['coverage']['tribunal']=='cnj'
+
+@pytest.mark.parametrize('q',['AREsp 3335301','AREsp 3.335.301','AgInt no AREsp n. 3.335.301/SP'])
+def test_process_identifier_excludes_other_cases_and_keeps_full_text(monkeypatch,q):
+    wrong={'tribunal':'stj','class':'REsp','case_number':'1556957','record_id':'wrong','summary':'Menciona AREsp na decisão.'}
+    right={'tribunal':'stj','class':'DECISÃO','case_number':'AREsp 3335301','record_id':'right','full_text_retrieved':True}
+    async def mirrors(*args,**kwargs):return {'results':[wrong],'warnings':[],'coverage':{}}
+    async def full(source,query,*args,**kwargs):
+        assert query=='aresp 3335301'
+        return {'results':[right],'warnings':[],'coverage':{}}
+    monkeypatch.setattr(jurisprudence.stj_index,'search',mirrors)
+    monkeypatch.setattr(court_index,'search',full)
+    result=asyncio.run(jurisprudence.search(q,tribunal='stj',limit=1))
+    assert result['results']==[right]
+
+def test_wrong_process_class_is_not_exact_match():
+    doc={'tribunal':'stj','class':'REsp','case_number':'3335301'}
+    assert not jurisprudence.matches_case(doc,('aresp','3335301'))

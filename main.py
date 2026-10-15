@@ -12,7 +12,7 @@ import jurisprudence
 from catalog import LEGAL_AREAS
 from official_http import now
 
-VERSION='4.2.1'
+VERSION='4.2.2'
 API_KEY=os.getenv('API_KEY','')
 SOURCES=[
  {'id':'camara','name':'Câmara dos Deputados','type':'fontes_oficiais','official':True,'capability':'federal_legislation_live'},

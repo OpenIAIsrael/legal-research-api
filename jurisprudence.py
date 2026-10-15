@@ -1,9 +1,22 @@
 """Route court filters to their own documented official connector."""
 import asyncio
+import re
 import cnj_source
 import court_index
 import stj_index
 from official_http import fetch,SourceError,now
+from search_core import normalize
+
+def case_identifier(q):
+    match=re.search(r'\b(aresp|resp|eresp|hc|rhc|rms|ms|cc|pet)\s+(?:n[º°o.]?\s*)?([\d.]+)(?:/[a-z]{2})?\s*$',normalize(q))
+    if not match:return None
+    number=re.sub(r'\D','',match[2])
+    return (match[1],str(int(number))) if number else None
+
+def matches_case(doc,ident):
+    cls,number=ident;case=str(doc.get('case_number') or '')
+    numeric=re.sub(r'\D','',case)
+    return doc.get('tribunal')=='stj' and numeric and str(int(numeric))==number and bool(re.search(r'\b'+cls+r'\b',normalize(str(doc.get('class') or '')+' '+case)))
 
 async def stf_search():
     # Probe the official public publication channel. Never solve a challenge or fabricate results.
@@ -30,6 +43,13 @@ async def search(q,area=None,tribunal=None,precedent_only=False,limit=5):
     if tribunal=='cnj':return await cnj_source.search(q,area,precedent_only,limit)
     if tribunal=='tcu':return await court_index.search('tcu',q,area,precedent_only,limit)
     if tribunal=='stf':return await stf_search()
-    operations=[stj_index.search(q,area,'stj',precedent_only,limit),court_index.search('stj_full',q,area,precedent_only,limit)]
+    ident=case_identifier(q) if tribunal=='stj' else None
+    effective_q=' '.join(ident) if ident else q
+    operations=[stj_index.search(effective_q,area,'stj',precedent_only,limit),court_index.search('stj_full',effective_q,area,precedent_only,limit)]
     if tribunal is None:operations.extend([cnj_source.search(q,area,precedent_only,limit),court_index.search('tcu',q,area,precedent_only,limit),stf_search()])
-    return combine(await asyncio.gather(*operations),limit)
+    parts=await asyncio.gather(*operations)
+    if ident:
+        for part in parts:
+            part['results']=[doc for doc in part['results'] if matches_case(doc,ident)]
+            part['warnings'].append('Consulta identificadora: classe e número do processo comparados exatamente; menções temáticas a outros processos não são correspondência.')
+    return combine(parts,limit)

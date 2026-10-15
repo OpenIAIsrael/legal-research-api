@@ -1,4 +1,4 @@
-# Legal Research API 4.2.1
+# Legal Research API 4.2.2
 
 Serviço FastAPI com as seis ferramentas MCP autenticadas por OAuth/Auth0. As rotas REST continuam exigindo o Bearer legado. Nenhuma credencial é armazenada neste repositório.
 
@@ -9,6 +9,7 @@ Serviço FastAPI com as seis ferramentas MCP autenticadas por OAuth/Auth0. As ro
 - Conector SRU do LexML com tratamento explícito de respostas não XML e desafios de segurança. O acesso estava bloqueado na validação; o conector não é declarado homologado em produção.
 - Índice SQLite FTS5 de espelhos efetivamente publicados nos dados abertos do STJ. Ementa, dispositivo, relator, órgão, processo e datas vêm do registro oficial.
 - Filtros não são silenciosamente substituídos. Não há criação de decisões, classificação de precedentes pela vontade do solicitante nem datas artificiais de verificação.
+- Consultas identificadoras STJ como `AREsp 3335301` ou `AREsp 3.335.301` exigem classe e número exatos no registro; resultados que só mencionam a classe de recurso em outros processos são excluídos.
 
 ## Limites que fazem parte do contrato
 
